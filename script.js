@@ -1,7 +1,4 @@
-// script.js - РАБОЧАЯ ВЕРСИЯ с Cobalt API
-
-// API Cobalt (публичный, бесплатный, без CORS)
-const COBALT_API = 'https://co.wuk.sh/api/json';
+// script.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
 
 // Проверка премиум статуса при загрузке
 document.addEventListener('DOMContentLoaded', function() {
@@ -32,9 +29,6 @@ function setupDownloadButton() {
                 return;
             }
             
-            // Показываем загрузку
-            showResult('🔄 Получаем информацию о видео...', 'info');
-            
             // Определяем платформу
             const platform = detectPlatform(url);
             
@@ -46,16 +40,15 @@ function setupDownloadButton() {
             // Проверяем премиум статус
             const isPremium = window.isPremiumActive ? window.isPremiumActive() : false;
             
-            // Если это YouTube и нет премиума - только 480p
-            if (platform === 'youtube' && !isPremium) {
-                await fetchVideoFromCobalt(url, '480');
-            } 
-            // Если есть премиум - все качества + аудио
-            else if (isPremium) {
-                // Показываем выбор качества
+            // Если есть премиум - показываем выбор качества
+            if (isPremium) {
                 showQualitySelector(url, platform);
             } 
-            // Если нет премиума и это не YouTube
+            // Если YouTube без премиума - только 480p
+            else if (platform === 'youtube') {
+                await downloadFromSaveFrom(url, '480');
+            }
+            // Остальные платформы без премиума
             else {
                 showResult(
                     '❌ Для скачивания с ' + getPlatformName(platform) + ' нужен Premium<br>' +
@@ -68,28 +61,65 @@ function setupDownloadButton() {
     }
 }
 
+// Скачивание через SaveFrom.net (работает без CORS)
+async function downloadFromSaveFrom(url, quality) {
+    try {
+        showResult('🔄 Получаем видео...', 'info');
+        
+        // Используем их публичный сервис (открывается в новой вкладке)
+        const saveFromUrl = `https://en.savefrom.net/ru/#url=${encodeURIComponent(url)}`;
+        
+        let resultHtml = `
+            <div class="video-info">
+                <h3>✅ Видео готово к скачиванию</h3>
+                <p>Нажмите кнопку ниже:</p>
+            </div>
+            <div style="text-align: center;">
+                <a href="${saveFromUrl}" target="_blank" class="download-option video" style="display: inline-flex; width: auto; padding: 15px 40px;">
+                    <i class="fas fa-download"></i>
+                    <span>Скачать видео</span>
+                </a>
+            </div>
+        `;
+        
+        // Добавляем рекламу премиума
+        resultHtml += `
+            <div class="premium-upsell" style="margin-top: 25px;">
+                <p>✨ Хотите скачивать с других платформ?</p>
+                <a href="premium.html">Получить Premium →</a>
+            </div>
+        `;
+        
+        showResult(resultHtml, 'success');
+        
+    } catch (error) {
+        console.error('Ошибка:', error);
+        showResult('❌ Ошибка при загрузке. Попробуйте позже.', 'error');
+    }
+}
+
 // Показываем выбор качества для премиум пользователей
 function showQualitySelector(url, platform) {
     let html = `
         <div class="video-info">
             <h3>🎬 Выберите качество</h3>
+            <p>Платформа: ${getPlatformName(platform)}</p>
         </div>
         <div class="download-options">
     `;
     
+    // Качество для разных платформ
     const qualities = [
         { value: '2160', label: '4K (2160p)', type: 'video' },
-        { value: '1440', label: '2K (1440p)', type: 'video' },
         { value: '1080', label: 'Full HD (1080p)', type: 'video' },
         { value: '720', label: 'HD (720p)', type: 'video' },
         { value: '480', label: '480p', type: 'video' },
-        { value: '360', label: '360p', type: 'video' },
         { value: 'audio', label: 'Аудио (MP3)', type: 'audio' }
     ];
     
     qualities.forEach(q => {
         html += `
-            <button onclick="downloadWithQuality('${url}', '${q.value}')" class="download-option ${q.type}">
+            <button onclick="downloadPremiumVideo('${url}', '${q.value}')" class="download-option ${q.type}">
                 <i class="fas fa-${q.type === 'video' ? 'video' : 'music'}"></i>
                 <span>${q.label}</span>
             </button>
@@ -101,85 +131,46 @@ function showQualitySelector(url, platform) {
     showResult(html, 'premium');
 }
 
-// Глобальная функция для скачивания с выбранным качеством
-window.downloadWithQuality = async function(url, quality) {
-    await fetchVideoFromCobalt(url, quality);
+// Скачивание премиум видео через разные сервисы
+window.downloadPremiumVideo = async function(url, quality) {
+    showResult('🔄 Подготовка ссылок для скачивания...', 'info');
+    
+    const platform = detectPlatform(url);
+    
+    // Словарь сервисов для разных платформ
+    const services = {
+        youtube: `https://ru.savefrom.net/ru/#url=${encodeURIComponent(url)}`,
+        tiktok: `https://snaptik.app/ru?url=${encodeURIComponent(url)}`,
+        instagram: `https://saveinsta.app/ru/download?url=${encodeURIComponent(url)}`,
+        vk: `https://ru.savefrom.net/ru/#url=${encodeURIComponent(url)}`,
+        twitter: `https://savetweet.app/ru?url=${encodeURIComponent(url)}`,
+        facebook: `https://fdown.net/ru/download.php?url=${encodeURIComponent(url)}`,
+        soundcloud: `https://soundcloudmp3.co/download?url=${encodeURIComponent(url)}`,
+        default: `https://en.savefrom.net/ru/#url=${encodeURIComponent(url)}`
+    };
+    
+    const downloadUrl = services[platform] || services.default;
+    
+    let resultHtml = `
+        <div class="video-info">
+            <h3>✅ Видео готово к скачиванию</h3>
+            <p>Качество: ${quality === 'audio' ? 'MP3 Аудио' : quality + 'p'}</p>
+        </div>
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="${downloadUrl}" target="_blank" class="download-option ${quality === 'audio' ? 'audio' : 'video'}" style="display: inline-flex; width: auto; padding: 15px 40px;">
+                <i class="fas fa-${quality === 'audio' ? 'music' : 'download'}"></i>
+                <span>Скачать</span>
+            </a>
+        </div>
+        <div style="margin-top: 15px; font-size: 12px; color: #888;">
+            <p>💡 Если ссылка не открывается, попробуйте:</p>
+            <p>1. Разрешите всплывающие окна</p>
+            <p>2. Скопируйте ссылку: ${downloadUrl}</p>
+        </div>
+    `;
+    
+    showResult(resultHtml, 'success');
 };
-
-// Основная функция для запроса к Cobalt API
-async function fetchVideoFromCobalt(url, quality) {
-    try {
-        showResult('🔄 Загружаем видео... Пожалуйста, подождите.', 'info');
-        
-        // Настраиваем параметры запроса
-        const requestBody = {
-            url: url,
-            vCodec: 'h264', // самый совместимый кодек
-            vQuality: quality, // качество: '2160', '1440', '1080', '720', '480', '360', 'audio'
-            aFormat: 'mp3', // для аудио
-            isAudioOnly: quality === 'audio',
-            isNoTTWatermark: true, // убираем водяной знак с TikTok
-        };
-        
-        const response = await fetch(COBALT_API, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Ошибка API: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.status === 'error') {
-            throw new Error(data.text || 'Ошибка при загрузке');
-        }
-        
-        if (data.url) {
-            // Успех - показываем ссылку на скачивание
-            const fileType = quality === 'audio' ? 'audio' : 'video';
-            const fileIcon = quality === 'audio' ? 'fa-music' : 'fa-video';
-            const qualityText = quality === 'audio' ? 'Аудио MP3' : `${quality}p`;
-            
-            let resultHtml = `
-                <div class="video-info">
-                    <h3>✅ Готово к скачиванию!</h3>
-                    <p>Формат: ${qualityText}</p>
-                </div>
-                <div style="text-align: center;">
-                    <a href="${data.url}" target="_blank" class="download-option ${fileType}" style="display: inline-flex; width: auto; padding: 15px 40px;">
-                        <i class="fas ${fileIcon}"></i>
-                        <span>Скачать ${qualityText}</span>
-                    </a>
-                </div>
-            `;
-            
-            // Добавляем рекламу премиума для бесплатных пользователей
-            const isPremium = window.isPremiumActive ? window.isPremiumActive() : false;
-            if (!isPremium) {
-                resultHtml += `
-                    <div class="premium-upsell" style="margin-top: 25px;">
-                        <p>✨ Хотите 4K и другие платформы?</p>
-                        <a href="premium.html">Получить Premium →</a>
-                    </div>
-                `;
-            }
-            
-            showResult(resultHtml, 'success');
-        } else {
-            showResult('❌ Не удалось получить видео. Попробуйте другую ссылку.', 'error');
-        }
-        
-    } catch (error) {
-        console.error('Ошибка Cobalt API:', error);
-        showResult('❌ Ошибка при загрузке. Попробуйте позже.', 'error');
-    }
-}
 
 // Определение платформы
 function detectPlatform(url) {
@@ -189,11 +180,10 @@ function detectPlatform(url) {
         { name: 'youtube', patterns: ['youtube.com', 'youtu.be', 'm.youtube.com', 'youtube.com/shorts'] },
         { name: 'tiktok', patterns: ['tiktok.com', 'vm.tiktok.com'] },
         { name: 'instagram', patterns: ['instagram.com', 'instagr.am', 'reels'] },
-        { name: 'vk', patterns: ['vk.com', 'vkontakte.ru'] },
+        { name: 'vk', patterns: ['vk.com', 'vkontakte.ru', 'vkvideo.ru'] },
         { name: 'twitter', patterns: ['twitter.com', 'x.com'] },
         { name: 'facebook', patterns: ['facebook.com', 'fb.com', 'fb.watch'] },
-        { name: 'twitch', patterns: ['twitch.tv'] },
-        { name: 'soundcloud', patterns: ['soundcloud.com'] },
+        { name: 'soundcloud', patterns: ['soundcloud.com', 'snd.cloud'] },
         { name: 'vimeo', patterns: ['vimeo.com'] }
     ];
     
@@ -215,7 +205,6 @@ function getPlatformName(platform) {
         'vk': 'VK',
         'twitter': 'Twitter/X',
         'facebook': 'Facebook',
-        'twitch': 'Twitch',
         'soundcloud': 'SoundCloud',
         'vimeo': 'Vimeo'
     };
@@ -230,7 +219,6 @@ function showResult(message, type) {
         resultDiv.className = 'result-card ' + type;
         resultDiv.innerHTML = message;
         
-        // Прокрутка к результату
         setTimeout(() => {
             resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }, 100);
@@ -240,7 +228,6 @@ function showResult(message, type) {
 // Показать уведомление
 function showNotification(message, type) {
     const notification = document.createElement('div');
-    notification.className = 'notification';
     notification.innerHTML = message;
     notification.style.cssText = `
         position: fixed;
@@ -267,7 +254,7 @@ function showNotification(message, type) {
     }, 3000);
 }
 
-// Добавляем обработку Enter
+// Обработка Enter
 document.addEventListener('DOMContentLoaded', function() {
     const input = document.getElementById('videoUrl');
     if (input) {
