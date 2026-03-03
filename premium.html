@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Premium - Lap Saver</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <!-- Кнопка рекламы -->
+    <a href="https://bthebfr.github.io/lap-about/" class="ad-button" target="_blank">
+        <i class="fas fa-star"></i>
+        <span>Реклама</span>
+    </a>
+
+    <div class="container">
+        <a href="index.html" class="back-link">
+            <i class="fas fa-arrow-left"></i> Назад
+        </a>
+        
+        <h1 class="logo">Lap Saver Premium</h1>
+        <p class="subtitle">от Lap.comp при поддержке Завода "Осколки"</p>
+        
+        <div class="premium-card">
+            <h2><i class="fas fa-crown"></i> Преимущества Premium</h2>
+            
+            <ul class="premium-features">
+                <li><i class="fas fa-check-circle"></i> Скачивание с YouTube в 4K</li>
+                <li><i class="fas fa-check-circle"></i> Скачивание с TikTok без водяного знака</li>
+                <li><i class="fas fa-check-circle"></i> Скачивание с Instagram, VK, Facebook</li>
+                <li><i class="fas fa-check-circle"></i> Скачивание аудио (MP3) с любой платформы</li>
+                <li><i class="fas fa-check-circle"></i> Высокая скорость скачивания</li>
+                <li><i class="fas fa-check-circle"></i> Без ограничений</li>
+            </ul>
+            
+            <div class="token-section">
+                <h3>Введите токен Premium</h3>
+                <p class="token-info">Есть токен? Введите его ниже:</p>
+                
+                <div class="input-group">
+                    <input type="text" id="tokenInput" placeholder="Например: KL3OEW" autocomplete="off">
+                    <button id="activateTokenBtn" class="download-btn">
+                        <i class="fas fa-key"></i>
+                        <span>Активировать</span>
+                    </button>
+                </div>
+                
+                <div id="tokenResult" class="token-result" style="display: none;"></div>
+            </div>
+            
+            <div class="premium-cta">
+                <p>Нет токена?</p>
+                <a href="https://t.me/lapsaver_bot" class="premium-button" target="_blank">
+                    <i class="fab fa-telegram"></i>
+                    <span>Купить Premium</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Реклама Lap Convert -->
+        <div class="convert-ad">
+            <a href="https://bthebfr.github.io/lap-convert/" target="_blank">
+                <i class="fas fa-exchange-alt"></i>
+                <span>🎵 Нужно конвертировать видео в аудио? Перейти на Lap Convert →</span>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Футер -->
+    <footer class="footer">
+        <p>Lap Saver · 2026</p>
+    </footer>
+
+    <script src="premium.js"></script>
+</body>
+</html>
